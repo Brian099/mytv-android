@@ -22,7 +22,7 @@ android {
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = "${System.getenv("VERSION_CODE")}".toInt()
-        versionName = "1.1.0.${System.getenv("VERSION_CODE")}"//.${System.getenv("COMMIT_HASH")}"
+        versionName = "1.1.1.${System.getenv("VERSION_CODE")}"//.${System.getenv("COMMIT_HASH")}"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -38,10 +38,6 @@ android {
                 "proguard-rules.pro",
             )
             signingConfig = signingConfigs.getByName("release")
-
-            ndk {
-                abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
-            }
         }
         debug{
             isMinifyEnabled = false
@@ -50,9 +46,14 @@ android {
                 "proguard-rules.pro",
             )
             signingConfig = signingConfigs.getByName("release")
-            ndk {
-                abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
-            }
+        }
+    }
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
         }
     }
 
@@ -149,6 +150,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
+
 
 fun getProperty(key: String): String? {
     val propertiesFile = rootProject.file("local.properties")

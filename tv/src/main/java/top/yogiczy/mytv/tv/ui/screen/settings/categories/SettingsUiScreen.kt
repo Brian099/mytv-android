@@ -92,6 +92,47 @@ fun SettingsUiScreen(
             )
         }
 
+        if (settingsViewModel.uiUseClassicPanelScreen) {
+            item {
+                SettingsListItem(
+                    headlineContent = "显示直播源列表",
+                    supportingContent = "在经典选台界面中启用\"向左查看直播源\"功能",
+                    trailingContent = {
+                        Switch(settingsViewModel.uiClassicShowSourceList, null)
+                    },
+                    onSelect = {
+                        settingsViewModel.uiClassicShowSourceList = !settingsViewModel.uiClassicShowSourceList
+                    },
+                )
+            }
+
+            item {
+                SettingsListItem(
+                    headlineContent = "显示频道信息",
+                    supportingContent = "在经典选台界面中显示当前频道的详细信息",
+                    trailingContent = {
+                        Switch(settingsViewModel.uiClassicShowChannelInfo, null)
+                    },
+                    onSelect = {
+                        settingsViewModel.uiClassicShowChannelInfo = !settingsViewModel.uiClassicShowChannelInfo
+                    },
+                )
+            }
+
+            item {
+                SettingsListItem(
+                    headlineContent = "显示全部频道",
+                    supportingContent = "是否显示当前订阅源全部频道列表",
+                    trailingContent = {
+                        Switch(settingsViewModel.uiClassicShowAllChannels, null)
+                    },
+                    onSelect = {
+                        settingsViewModel.uiClassicShowAllChannels = !settingsViewModel.uiClassicShowAllChannels
+                    },
+                )
+            }
+        }
+
         item {
             val timeShowMode = settingsViewModel.uiTimeShowMode
 
@@ -167,7 +208,7 @@ fun SettingsUiScreen(
         item {
             SettingsListItem(
                 headlineContent = "启用收藏",
-                supportingContent = "是否显示订阅源频道收藏列表",
+                supportingContent = "是否显示当前订阅源频道收藏列表",
                 trailingContent = {
                     Switch(settingsViewModel.iptvChannelFavoriteEnable, null)
                 },

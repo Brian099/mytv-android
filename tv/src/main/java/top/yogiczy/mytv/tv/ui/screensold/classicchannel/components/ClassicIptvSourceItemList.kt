@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -17,7 +17,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -33,9 +32,8 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import top.yogiczy.mytv.core.data.entities.channel.ChannelGroup
-import top.yogiczy.mytv.core.data.entities.channel.ChannelGroupList
 import top.yogiczy.mytv.core.data.entities.iptvsource.IptvSource
+import top.yogiczy.mytv.core.data.entities.iptvsource.IptvSourceList
 import top.yogiczy.mytv.tv.ui.material.rememberDebounceState
 import top.yogiczy.mytv.tv.ui.screen.settings.settingsVM
 import top.yogiczy.mytv.tv.ui.theme.MyTvTheme
@@ -47,43 +45,25 @@ import top.yogiczy.mytv.tv.ui.utils.saveRequestFocus
 import kotlin.math.max
 
 @Composable
-fun ClassicChannelGroupItemList(
+fun ClassicIptvSourceItemList(
     modifier: Modifier = Modifier,
-    channelSourceProvider: () -> IptvSource = { IptvSource() },
-    channelGroupListProvider: () -> ChannelGroupList = { ChannelGroupList() },
-    initialChannelGroupProvider: () -> ChannelGroup = { ChannelGroup() },
-    onChannelGroupFocused: (ChannelGroup) -> Unit = {},
+    iptvSourceListProvider: () -> IptvSourceList = { IptvSourceList() },
+    currentIptvSourceProvider: () -> IptvSource = { IptvSource() },
+    onIptvSourceFocused: (IptvSource) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
-    val channelGroupList = channelGroupListProvider()
-    val channelSource = channelSourceProvider()
-    val initialChannelGroup = initialChannelGroupProvider()
-    val itemFocusRequesterList =
-        remember(channelGroupList) { List(channelGroupList.size) { FocusRequester() } }
+    val iptvSourceList = iptvSourceListProvider()
+    val currentIptvSource = currentIptvSourceProvider()
+    val itemFocusRequesterList = List(iptvSourceList.size) { FocusRequester() }
+
+    var focusedIptvSource by remember { mutableStateOf(currentIptvSource) }
     
-    var hasFocused by rememberSaveable { mutableStateOf(!channelGroupList.contains(initialChannelGroup)) }
-    var focusedChannelGroup by remember(channelGroupList) {
-        mutableStateOf(
-            if (hasFocused) channelGroupList.firstOrNull() ?: ChannelGroup() else initialChannelGroup
-        )
-    }
-    val onChannelGroupFocusedDebounce = rememberDebounceState(wait = 100L) {
-        onChannelGroupFocused(focusedChannelGroup)
-    }
-
-    val listState = remember(channelSource) {
-        LazyListState(
-            if (hasFocused) 0
-            else max(0, channelGroupList.indexOf(initialChannelGroup) - 2)
-        )
-    }
-
+    val listState = rememberLazyListState(max(0, iptvSourceList.indexOf(currentIptvSource)))
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }
             .distinctUntilChanged()
             .collect { _ ->
                 onUserAction()
-                onChannelGroupFocusedDebounce.send()
             }
     }
 
@@ -98,7 +78,7 @@ fun ClassicChannelGroupItemList(
     }
     fun scrollToLast() {
         coroutineScope.launch {
-            listState.scrollToItem(channelGroupList.lastIndex)
+            listState.scrollToItem(iptvSourceList.lastIndex)
             lastFocusRequester.saveRequestFocus()
         }
     }
@@ -111,20 +91,20 @@ fun ClassicChannelGroupItemList(
             .ifElse(
                 settingsVM.uiFocusOptimize,
                 Modifier.saveFocusRestorer {
-                    itemFocusRequesterList.getOrElse(channelGroupList.indexOf(focusedChannelGroup)) { FocusRequester.Default }
+                    itemFocusRequesterList.getOrElse(iptvSourceList.indexOf(focusedIptvSource)) { FocusRequester.Default }
                 },
             ),
         state = listState,
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        itemsIndexed(channelGroupList, key = { _, channelGroup -> channelGroup.hashCode() }) { index, channelGroup ->
-            val isSelected by remember { derivedStateOf { channelGroup == focusedChannelGroup } }
-            // val initialFocused by remember {
-            //     derivedStateOf { !hasFocused && channelGroup == initialChannelGroup }
-            // }
-            ClassicChannelGroupItem(
+        itemsIndexed(iptvSourceList) { index, iptvSource ->
+            val isSelected by remember { derivedStateOf { iptvSource == focusedIptvSource } }
+
+            ClassicIptvSourceItem(
                 modifier = Modifier
+                    .ifElse(iptvSource == currentIptvSource, Modifier.focusOnLaunchedSaveable())
+                    .focusRequester(itemFocusRequesterList[index])
                     .ifElse(
                         index == 0,
                         Modifier
@@ -132,19 +112,16 @@ fun ClassicChannelGroupItemList(
                             .handleKeyEvents(onUp = { scrollToLast() })
                     )
                     .ifElse(
-                        index == channelGroupList.lastIndex,
+                        index == iptvSourceList.lastIndex,
                         Modifier
                             .focusRequester(lastFocusRequester)
                             .handleKeyEvents(onDown = { scrollToFirst() })
                     ),
-                channelGroupProvider = { channelGroup },
+                iptvSourceProvider = { iptvSource },
                 isSelectedProvider = { isSelected },
-                focusRequesterProvider = { itemFocusRequesterList[index] },
-                // initialFocusedProvider = { initialFocused },
-                // onInitialFocused = { hasFocused = true },
                 onFocused = {
-                    focusedChannelGroup = channelGroup
-                    onChannelGroupFocusedDebounce.send()
+                    focusedIptvSource = iptvSource
+                    onIptvSourceFocused(iptvSource)
                 },
             )
         }
@@ -152,36 +129,28 @@ fun ClassicChannelGroupItemList(
 }
 
 @Composable
-private fun ClassicChannelGroupItem(
+private fun ClassicIptvSourceItem(
     modifier: Modifier = Modifier,
-    channelGroupProvider: () -> ChannelGroup = { ChannelGroup() },
+    iptvSourceProvider: () -> IptvSource = { IptvSource() },
     isSelectedProvider: () -> Boolean = { false },
-    focusRequesterProvider: () -> FocusRequester = { FocusRequester() },
-    // initialFocusedProvider: () -> Boolean = { false },
-    // onInitialFocused: () -> Unit = {},
     onFocused: () -> Unit = {},
 ) {
-    val channelGroup = channelGroupProvider()
+    val iptvSource = iptvSourceProvider()
 
-    val focusRequester = focusRequesterProvider()
+    val focusRequester = remember { FocusRequester() }
     var isFocused by remember { mutableStateOf(false) }
 
-    // LaunchedEffect(Unit) {
-    //     if (initialFocusedProvider()) {
-    //         onInitialFocused()
-    //         focusRequester.saveRequestFocus()
-    //     }
-    // }
     DenseListItem(
-        modifier = Modifier
+        modifier = modifier
             .focusRequester(focusRequester)
             .onFocusChanged {
                 isFocused = it.isFocused || it.hasFocus
                 if (isFocused) onFocused()
             }
             .handleKeyEvents(
-                onSelect = onFocused,
-                onLongSelect = onFocused
+                isFocused = { isFocused },
+                focusRequester = focusRequester,
+                onSelect = {},
             ),
         colors = ListItemDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.onSurface,
@@ -192,7 +161,7 @@ private fun ClassicChannelGroupItem(
         onClick = {},
         headlineContent = {
             Text(
-                text = channelGroup.name,
+                text = iptvSource.name,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 modifier = Modifier
@@ -205,11 +174,11 @@ private fun ClassicChannelGroupItem(
 
 @Preview
 @Composable
-private fun ClassicChannelGroupItemListPreview() {
+private fun ClassicIptvSourceItemListPreview() {
     MyTvTheme {
-        ClassicChannelGroupItemList(
-            channelGroupListProvider = { ChannelGroupList.EXAMPLE },
-            initialChannelGroupProvider = { ChannelGroupList.EXAMPLE.first() },
+        ClassicIptvSourceItemList(
+            iptvSourceListProvider = { IptvSourceList.EXAMPLE },
+            currentIptvSourceProvider = { IptvSourceList.EXAMPLE.first() },
         )
     }
-}
+} 

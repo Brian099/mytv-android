@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,37 +54,33 @@ fun ClassicChannelGroupItemList(
     channelGroupListProvider: () -> ChannelGroupList = { ChannelGroupList() },
     initialChannelGroupProvider: () -> ChannelGroup = { ChannelGroup() },
     onChannelGroupFocused: (ChannelGroup) -> Unit = {},
+    channelInCurrentSourceProvider: () -> Boolean = { false },
     onUserAction: () -> Unit = {},
 ) {
     val channelGroupList = channelGroupListProvider()
     val channelSource = channelSourceProvider()
     val initialChannelGroup = initialChannelGroupProvider()
-    val itemFocusRequesterList =
-        remember(channelGroupList) { List(channelGroupList.size) { FocusRequester() } }
-    
-    var hasFocused by rememberSaveable { mutableStateOf(!channelGroupList.contains(initialChannelGroup)) }
-    var focusedChannelGroup by remember(channelGroupList) {
+    val itemFocusRequesterList = List(channelGroupList.size) { FocusRequester() }
+    var hasFocused by rememberSaveable { mutableStateOf(channelInCurrentSourceProvider()) }
+    var focusedChannelGroup by remember(channelSource) {
         mutableStateOf(
-            if (hasFocused) channelGroupList.firstOrNull() ?: ChannelGroup() else initialChannelGroup
+            initialChannelGroup
         )
-    }
-    val onChannelGroupFocusedDebounce = rememberDebounceState(wait = 100L) {
-        onChannelGroupFocused(focusedChannelGroup)
     }
 
-    val listState = remember(channelSource) {
-        LazyListState(
-            if (hasFocused) 0
-            else max(0, channelGroupList.indexOf(initialChannelGroup) - 2)
-        )
-    }
+    // val listState = remember(channelSource) {
+    //     LazyListState(
+    //         if (hasFocused) 0
+    //         else max(0, channelGroupList.indexOf(initialChannelGroup) - 2)
+    //     )
+    // }
+    val listState = rememberLazyListState(max(0, channelGroupList.indexOf(initialChannelGroup) - 2))
 
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }
             .distinctUntilChanged()
             .collect { _ ->
                 onUserAction()
-                onChannelGroupFocusedDebounce.send()
             }
     }
 
@@ -111,7 +108,9 @@ fun ClassicChannelGroupItemList(
             .ifElse(
                 settingsVM.uiFocusOptimize,
                 Modifier.saveFocusRestorer {
-                    itemFocusRequesterList.getOrElse(channelGroupList.indexOf(focusedChannelGroup)) { FocusRequester.Default }
+                    itemFocusRequesterList.getOrElse(channelGroupList.indexOf(focusedChannelGroup)) { 
+                        FocusRequester.Default 
+                    }
                 },
             ),
         state = listState,
@@ -120,9 +119,9 @@ fun ClassicChannelGroupItemList(
     ) {
         itemsIndexed(channelGroupList, key = { _, channelGroup -> channelGroup.hashCode() }) { index, channelGroup ->
             val isSelected by remember { derivedStateOf { channelGroup == focusedChannelGroup } }
-            // val initialFocused by remember {
-            //     derivedStateOf { !hasFocused && channelGroup == initialChannelGroup }
-            // }
+            val initialFocused by remember {
+                derivedStateOf { !hasFocused && channelGroup == initialChannelGroup }
+            }
             ClassicChannelGroupItem(
                 modifier = Modifier
                     .ifElse(
@@ -140,11 +139,11 @@ fun ClassicChannelGroupItemList(
                 channelGroupProvider = { channelGroup },
                 isSelectedProvider = { isSelected },
                 focusRequesterProvider = { itemFocusRequesterList[index] },
-                // initialFocusedProvider = { initialFocused },
-                // onInitialFocused = { hasFocused = true },
+                initialFocusedProvider = { initialFocused },
+                onInitialFocused = { hasFocused = true },
                 onFocused = {
                     focusedChannelGroup = channelGroup
-                    onChannelGroupFocusedDebounce.send()
+                    onChannelGroupFocused(channelGroup)
                 },
             )
         }
@@ -157,8 +156,8 @@ private fun ClassicChannelGroupItem(
     channelGroupProvider: () -> ChannelGroup = { ChannelGroup() },
     isSelectedProvider: () -> Boolean = { false },
     focusRequesterProvider: () -> FocusRequester = { FocusRequester() },
-    // initialFocusedProvider: () -> Boolean = { false },
-    // onInitialFocused: () -> Unit = {},
+    initialFocusedProvider: () -> Boolean = { false },
+    onInitialFocused: () -> Unit = {},
     onFocused: () -> Unit = {},
 ) {
     val channelGroup = channelGroupProvider()
@@ -166,12 +165,12 @@ private fun ClassicChannelGroupItem(
     val focusRequester = focusRequesterProvider()
     var isFocused by remember { mutableStateOf(false) }
 
-    // LaunchedEffect(Unit) {
-    //     if (initialFocusedProvider()) {
-    //         onInitialFocused()
-    //         focusRequester.saveRequestFocus()
-    //     }
-    // }
+    LaunchedEffect(Unit) {
+        if (initialFocusedProvider()) {
+            onInitialFocused()
+            focusRequester.saveRequestFocus()
+        }
+    }
     DenseListItem(
         modifier = Modifier
             .focusRequester(focusRequester)

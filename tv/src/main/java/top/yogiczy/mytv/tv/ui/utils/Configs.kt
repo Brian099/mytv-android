@@ -5,6 +5,7 @@ import kotlinx.serialization.Contextual
 import kotlinx.serialization.encodeToString
 import top.yogiczy.mytv.core.data.entities.actions.KeyDownAction
 import top.yogiczy.mytv.core.data.entities.channel.Channel
+import top.yogiczy.mytv.core.data.entities.channel.ChannelList
 import top.yogiczy.mytv.core.data.entities.channel.ChannelFavoriteList
 import top.yogiczy.mytv.core.data.entities.epg.EpgProgrammeReserveList
 import top.yogiczy.mytv.core.data.entities.epgsource.EpgSource
@@ -93,6 +94,9 @@ object Configs {
 
         /** 订阅源频道收藏列表 */
         IPTV_CHANNEL_FAVORITE_LIST,
+
+        /** 频道历史记录 */
+        IPTV_CHANNEL_HISTORY_LIST,
 
         /** 上一次播放频道 */
         IPTV_CHANNEL_LAST_PLAY,
@@ -250,6 +254,9 @@ object Configs {
         /** 播放器 跳过同一VSync渲染多帧 */
         VIDEO_PLAYER_SKIP_MULTIPLE_FRAMES_ON_SAME_VSYNC,
 
+        /** 播放器 支持 TS 高级特性 */
+        VIDEO_PLAYER_SUPPORT_TS_HIGH_PROFILE,
+        
         /** 播放器音量均衡 */
         VIDEO_PLAYER_VOLUME_NORMALIZATION,
 
@@ -417,6 +424,19 @@ object Configs {
         )
         set(value) = SP.putString(
             KEY.IPTV_CHANNEL_FAVORITE_LIST.name,
+            Globals.json.encodeToString(value)
+        )
+
+    /** 频道历史记录 */
+    var iptvChannelHistoryList: ChannelList
+        get() = Globals.json.decodeFromString(
+            SP.getString(
+                KEY.IPTV_CHANNEL_HISTORY_LIST.name,
+                Globals.json.encodeToString(ChannelList())
+            )
+        )
+        set(value) = SP.putString(
+            KEY.IPTV_CHANNEL_HISTORY_LIST.name,
             Globals.json.encodeToString(value)
         )
 
@@ -721,6 +741,11 @@ object Configs {
         get() = SP.getBoolean(KEY.VIDEO_PLAYER_SKIP_MULTIPLE_FRAMES_ON_SAME_VSYNC.name, true)
         set(value) = SP.putBoolean(KEY.VIDEO_PLAYER_SKIP_MULTIPLE_FRAMES_ON_SAME_VSYNC.name, value)
 
+    /** 播放器 支持 TS 高级特性 */
+    var videoPlayerSupportTSHighProfile: Boolean
+        get() = SP.getBoolean(KEY.VIDEO_PLAYER_SUPPORT_TS_HIGH_PROFILE.name, false)
+        set(value) = SP.putBoolean(KEY.VIDEO_PLAYER_SUPPORT_TS_HIGH_PROFILE.name, value)
+
     /** 播放器音量均衡 */
     var videoPlayerVolumeNormalization: Boolean
         get() = SP.getBoolean(KEY.VIDEO_PLAYER_VOLUME_NORMALIZATION.name, false)
@@ -917,6 +942,7 @@ object Configs {
             iptvChannelFavoriteEnable = iptvChannelFavoriteEnable,
             iptvChannelFavoriteListVisible = iptvChannelFavoriteListVisible,
             iptvChannelFavoriteList = iptvChannelFavoriteList,
+            iptvChannelHistoryList = iptvChannelHistoryList,
             iptvChannelLastPlay = iptvChannelLastPlay,
             iptvChannelLinePlayableHostList = iptvChannelLinePlayableHostList,
             iptvChannelLinePlayableUrlList = iptvChannelLinePlayableUrlList,
@@ -964,6 +990,7 @@ object Configs {
             videoPlayerForceSoftDecode = videoPlayerForceSoftDecode,
             videoPlayerStopPreviousMediaItem = videoPlayerStopPreviousMediaItem,
             videoPlayerSkipMultipleFramesOnSameVSync = videoPlayerSkipMultipleFramesOnSameVSync,
+            videoPlayerSupportTSHighProfile = videoPlayerSupportTSHighProfile,
             videoPlayerVolumeNormalization = videoPlayerVolumeNormalization,
             themeAppCurrent = themeAppCurrent,
             cloudSyncAutoPull = cloudSyncAutoPull,
@@ -1007,6 +1034,7 @@ object Configs {
         configs.iptvChannelFavoriteEnable?.let { iptvChannelFavoriteEnable = it }
         configs.iptvChannelFavoriteListVisible?.let { iptvChannelFavoriteListVisible = it }
         configs.iptvChannelFavoriteList?.let { iptvChannelFavoriteList = it }
+        configs.iptvChannelHistoryList?.let { iptvChannelHistoryList = it }
         configs.iptvChannelLastPlay?.let { iptvChannelLastPlay = it }
         configs.iptvChannelLinePlayableHostList?.let { iptvChannelLinePlayableHostList = it }
         configs.iptvChannelLinePlayableUrlList?.let { iptvChannelLinePlayableUrlList = it }
@@ -1056,6 +1084,7 @@ object Configs {
         configs.videoPlayerForceSoftDecode?.let { videoPlayerForceSoftDecode = it }
         configs.videoPlayerStopPreviousMediaItem?.let { videoPlayerStopPreviousMediaItem = it }
         configs.videoPlayerSkipMultipleFramesOnSameVSync?.let { videoPlayerSkipMultipleFramesOnSameVSync = it }
+        configs.videoPlayerSupportTSHighProfile?.let { videoPlayerSupportTSHighProfile = it }
         configs.videoPlayerVolumeNormalization?.let { videoPlayerVolumeNormalization = it }
         configs.themeAppCurrent?.let { themeAppCurrent = it }
         configs.cloudSyncAutoPull?.let { cloudSyncAutoPull = it }
@@ -1099,6 +1128,7 @@ object Configs {
         val iptvChannelFavoriteEnable: Boolean? = null,
         val iptvChannelFavoriteListVisible: Boolean? = null,
         val iptvChannelFavoriteList: ChannelFavoriteList? = null,
+        val iptvChannelHistoryList: ChannelList? = null,
         val iptvChannelLastPlay: Channel? = null,
         val iptvChannelLinePlayableHostList: Set<String>? = null,
         val iptvChannelLinePlayableUrlList: Set<String>? = null,
@@ -1146,6 +1176,7 @@ object Configs {
         val videoPlayerForceSoftDecode: Boolean? = null,
         val videoPlayerStopPreviousMediaItem: Boolean? = null,
         val videoPlayerSkipMultipleFramesOnSameVSync: Boolean? = null,
+        val videoPlayerSupportTSHighProfile: Boolean? = null,
         val videoPlayerVolumeNormalization : Boolean? = null,
         val themeAppCurrent: AppThemeDef? = null,
         val cloudSyncAutoPull: Boolean? = null,
@@ -1170,7 +1201,10 @@ object Configs {
             uiFocusOptimize = null,
             videoPlayerCore = null,
             webViewCore = null,
+            iptvChannelHistoryList = null,
+            iptvChannelFavoriteList = null,
             videoPlayerForceSoftDecode = null,
+            videoPlayerSupportTSHighProfile = null,
             // cloudSyncGithubGistId = null,
             // cloudSyncGithubGistToken = null,
             // cloudSyncGiteeGistId = null,

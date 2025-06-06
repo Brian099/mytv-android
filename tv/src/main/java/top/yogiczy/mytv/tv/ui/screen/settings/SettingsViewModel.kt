@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import top.yogiczy.mytv.core.data.entities.actions.KeyDownAction
 import top.yogiczy.mytv.core.data.entities.channel.Channel
+import top.yogiczy.mytv.core.data.entities.channel.ChannelList
 import top.yogiczy.mytv.core.data.entities.channel.ChannelFavoriteList
 import top.yogiczy.mytv.core.data.entities.epg.EpgProgrammeReserveList
 import top.yogiczy.mytv.core.data.entities.epgsource.EpgSource
@@ -227,11 +228,29 @@ class SettingsViewModel : ViewModel() {
             afterSetWhenCloudSyncAutoPull()
         }
 
+    private var _iptvChannelHistoryList by mutableStateOf(ChannelList())
+    var iptvChannelHistoryList: ChannelList
+        get() = _iptvChannelHistoryList
+        set(value) {
+            _iptvChannelHistoryList = value
+            Configs.iptvChannelHistoryList = _iptvChannelHistoryList
+            afterSetWhenCloudSyncAutoPull()
+        }
+
     private var _iptvChannelLastPlay by mutableStateOf(Channel.EMPTY)
     var iptvChannelLastPlay: Channel
         get() = _iptvChannelLastPlay
         set(value) {
             _iptvChannelLastPlay = value
+            if (!_iptvChannelHistoryList.contains(value)) {
+                val newList = _iptvChannelHistoryList.toMutableList().apply {
+                    if (size >= Constants.MAX_CHANNEL_HISTORY_SIZE) {
+                        removeAt(size - 1)
+                    }
+                }
+                _iptvChannelHistoryList = ChannelList(listOf(value) + newList)
+                Configs.iptvChannelHistoryList = _iptvChannelHistoryList
+            }
             Configs.iptvChannelLastPlay = value
             afterSetWhenCloudSyncAutoPull()
         }
@@ -588,6 +607,14 @@ class SettingsViewModel : ViewModel() {
             afterSetWhenCloudSyncAutoPull()
         }
 
+    private var _videoPlayerSupportTSHighProfile by mutableStateOf(false)
+    var videoPlayerSupportTSHighProfile: Boolean
+        get() = _videoPlayerSupportTSHighProfile
+        set(value) {
+            _videoPlayerSupportTSHighProfile = value
+            Configs.videoPlayerSupportTSHighProfile = value
+        }
+
     private var _videoPlayerVolumeNormalization by mutableStateOf(false)
     var videoPlayerVolumeNormalization: Boolean
         get() = _videoPlayerVolumeNormalization
@@ -882,6 +909,7 @@ class SettingsViewModel : ViewModel() {
         _videoPlayerForceSoftDecode = Configs.videoPlayerForceSoftDecode
         _videoPlayerStopPreviousMediaItem = Configs.videoPlayerStopPreviousMediaItem
         _videoPlayerSkipMultipleFramesOnSameVSync = Configs.videoPlayerSkipMultipleFramesOnSameVSync
+        _videoPlayerSupportTSHighProfile = Configs.videoPlayerSupportTSHighProfile
         _networkRetryCount = Configs.networkRetryCount
         _networkRetryInterval = Configs.networkRetryInterval
         _themeAppCurrent = Configs.themeAppCurrent

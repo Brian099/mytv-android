@@ -233,7 +233,7 @@ class SettingsViewModel : ViewModel() {
         get() = _iptvChannelHistoryList
         set(value) {
             _iptvChannelHistoryList = value
-            Configs.iptvChannelHistoryList = _iptvChannelHistoryList
+            Configs.iptvChannelHistoryList = value
             afterSetWhenCloudSyncAutoPull()
         }
 
@@ -270,15 +270,6 @@ class SettingsViewModel : ViewModel() {
         set(value) {
             _iptvChannelLinePlayableUrlList = value
             Configs.iptvChannelLinePlayableUrlList = value
-            afterSetWhenCloudSyncAutoPull()
-        }
-
-    private var _iptvChannelChangeFlip by mutableStateOf(false)
-    var iptvChannelChangeFlip: Boolean
-        get() = _iptvChannelChangeFlip
-        set(value) {
-            _iptvChannelChangeFlip = value
-            Configs.iptvChannelChangeFlip = value
             afterSetWhenCloudSyncAutoPull()
         }
 
@@ -861,10 +852,10 @@ class SettingsViewModel : ViewModel() {
         _iptvChannelFavoriteEnable = Configs.iptvChannelFavoriteEnable
         _iptvChannelFavoriteListVisible = Configs.iptvChannelFavoriteListVisible
         _iptvChannelFavoriteList = Configs.iptvChannelFavoriteList
+        _iptvChannelHistoryList = Configs.iptvChannelHistoryList
         _iptvChannelLastPlay = Configs.iptvChannelLastPlay
         _iptvChannelLinePlayableHostList = Configs.iptvChannelLinePlayableHostList
         _iptvChannelLinePlayableUrlList = Configs.iptvChannelLinePlayableUrlList
-        _iptvChannelChangeFlip = Configs.iptvChannelChangeFlip
         _iptvChannelNoSelectEnable = Configs.iptvChannelNoSelectEnable
         _epgEnable = Configs.epgEnable
         _epgSourceCurrent = Configs.epgSourceCurrent
@@ -924,7 +915,6 @@ class SettingsViewModel : ViewModel() {
         _cloudSyncWebDavUrl = Configs.cloudSyncWebDavUrl
         _cloudSyncWebDavUsername = Configs.cloudSyncWebDavUsername
         _cloudSyncWebDavPassword = Configs.cloudSyncWebDavPassword
-        // _feiyangAllInOneFilePath = Configs.feiyangAllInOneFilePath
         _videoPlayerVolumeNormalization = Configs.videoPlayerVolumeNormalization
     }
 

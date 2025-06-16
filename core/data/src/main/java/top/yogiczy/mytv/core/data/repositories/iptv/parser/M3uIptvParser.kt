@@ -35,8 +35,29 @@ class M3uIptvParser : IptvParser {
                 playbackType = null,
                 playbackFormat = null,
             )
+            var acceptNewConfig = true
             lines.forEach { line ->
                 if (line.isBlank()) return@forEach
+                if(!acceptNewConfig && (
+                    line.startsWith("#EXTINF") 
+                    || line.startsWith("#EXTM3U") 
+                    || line.startsWith("#EXTVLCOPT") 
+                    || line.startsWith("#KODIPROP"))){
+                    addedChannel = IptvParser.ChannelItem(
+                        name = "",
+                        epgName = "",
+                        groupName = "",
+                        url = "",
+                        logo = null,
+                        httpUserAgent = null,
+                        httpReferrer = null,
+                        httpOrigin = null,
+                        httpCookie = null,
+                        playbackType = null,
+                        playbackFormat = null,
+                    )
+                    acceptNewConfig = true
+                }
                 if (line.startsWith("#EXTM3U")) {
                     // 解析扩展信息
                     val playbackTypeString =
@@ -61,7 +82,9 @@ class M3uIptvParser : IptvParser {
                 } else if (line.startsWith("#EXTINF")) {
                     val name = line.split(",").last().trim()
                     val epgName =
-                        Regex("tvg-name=\"(.*?)\"").find(line)?.groupValues?.get(1)?.trim()
+                        Regex("tvg-id=\"(.*?)\"").find(line)?.groupValues?.get(1)?.trim()
+                            ?.ifBlank { name } ?:
+                            Regex("tvg-name=\"(.*?)\"").find(line)?.groupValues?.get(1)?.trim()
                             ?.ifBlank { name } ?: name
                     val groupNames =
                         Regex("group-title=\"(.+?)\"").find(line)?.groupValues?.get(1)?.split(";")
@@ -127,16 +150,16 @@ class M3uIptvParser : IptvParser {
                     } else if (line.startsWith("#KODIPROP:inputstream.adaptive.license_key")) {
                         addedChannel =
                             addedChannel.copy(licenseKey = line.split("=").last())
-                    } else if(line.startsWith("KODIPROP:inputstream.adaptive.stream_headers=Cookie=")){
+                    } else if(line.startsWith("#KODIPROP:inputstream.adaptive.stream_headers=Cookie=")){
                         addedChannel =
                             addedChannel.copy(httpCookie = line.split("=").last())
-                    }else if(line.startsWith("KODIPROP:inputstream.adaptive.stream_headers=Cookie%3d")){
+                    }else if(line.startsWith("#KODIPROP:inputstream.adaptive.stream_headers=Cookie%3d")){
                         addedChannel =
                             addedChannel.copy(httpCookie = line.split(".stream_headers=Cookie%3d").last())
-                    }else if(line.startsWith("KODIPROP:inputstream.adaptive.stream_headers=User-Agent=")){
+                    }else if(line.startsWith("#KODIPROP:inputstream.adaptive.stream_headers=User-Agent=")){
                         addedChannel =
                             addedChannel.copy(httpUserAgent = line.split("=").last())
-                    }else if(line.startsWith("KODIPROP:inputstream.adaptive.stream_headers=Referer=")){
+                    }else if(line.startsWith("#KODIPROP:inputstream.adaptive.stream_headers=Referer=")){
                         addedChannel =
                             addedChannel.copy(httpReferrer = line.split("=").last())
                     }else if (line.startsWith("#EXTVLCOPT:http-origin")) {
@@ -179,19 +202,7 @@ class M3uIptvParser : IptvParser {
                                 )
                             })
                         }
-                        addedChannel = IptvParser.ChannelItem(
-                            name = "",
-                            epgName = "",
-                            groupName = "",
-                            url = "",
-                            logo = null,
-                            httpUserAgent = null,
-                            httpReferrer = null,
-                            httpOrigin = null,
-                            httpCookie = null,
-                            playbackType = null,
-                            playbackFormat = null,
-                        )
+                        acceptNewConfig = false
                     }
                 }
             }

@@ -42,6 +42,8 @@ import top.yogiczy.mytv.tv.ui.tooling.PreviewWithLayoutGrids
 import top.yogiczy.mytv.tv.ui.utils.rememberReadExternalStoragePermission
 import java.io.File
 import top.yogiczy.mytv.core.data.utils.Globals
+import top.yogiczy.mytv.tv.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun App(
@@ -52,7 +54,7 @@ fun App(
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val doubleBackPressedExitState = rememberDoubleBackPressedExitState()
-
+    val exitString = stringResource(R.string.ui_app_exit)
     CompositionLocalProvider(
         LocalDensity provides Density(
             density = LocalDensity.current.density * when (settingsViewModel.uiDensityScaleRatio) {
@@ -70,7 +72,7 @@ fun App(
                         onBackPressed()
                     } else {
                         doubleBackPressedExitState.backPress()
-                        Snackbar.show("再按一次退出")
+                        Snackbar.show(exitString)
                     }
                 },
             )

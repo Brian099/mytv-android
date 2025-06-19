@@ -64,6 +64,8 @@ import top.yogiczy.mytv.tv.ui.utils.handleDragGestures
 import top.yogiczy.mytv.tv.ui.utils.handleKeyEvents
 import top.yogiczy.mytv.tv.ui.utils.Configs
 import top.yogiczy.mytv.tv.X5CorePreLoadService
+import top.yogiczy.mytv.tv.R
+
 @Composable
 fun MainContent(
     modifier: Modifier = Modifier,
@@ -164,7 +166,7 @@ fun MainContent(
                         settingsViewModel.webViewCore = Configs.WebViewCore.SYSTEM
                         Toast.makeText(
                             LocalContext.current,
-                            "X5内核不可用，将进行初始化。已切换为系统内核",
+                            LocalContext.current.getString(R.string.ui_x5_core_preload_not_supported),
                             Toast.LENGTH_LONG
                         ).show()
                         preInitX5Core(LocalContext.current)
